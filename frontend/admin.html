@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+
+<html lang="zh-TW">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>個人資料管理</title>
+
+  <style>
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 600px;
+      margin: 60px auto;
+    }
+
+    .card {
+      background: white;
+      padding: 35px;
+      border-radius: 16px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    label {
+      display: block;
+      margin-top: 18px;
+      font-weight: bold;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      box-sizing: border-box;
+      margin-top: 8px;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .primary {
+      background: #333;
+      color: white;
+    }
+
+    .logout {
+      background: #ddd;
+    }
+
+    .message {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+
+    #editor {
+      display: none;
+    }
+
+    a {
+      color: #333;
+    }
+
+  </style>
+
+</head>
+
+
+<body>
+
+<div class="container">
+
+  <div class="card">
+
+
+    <!-- Login -->
+
+    <div id="login">
+
+      <h1>管理員登入</h1>
+
+      <label>帳號</label>
+
+      <input
+        id="username"
+        type="text"
+        autocomplete="username"
+      >
+
+
+      <label>密碼</label>
+
+      <input
+        id="password"
+        type="password"
+        autocomplete="current-password"
+      >
+
+
+      <button
+        class="primary"
+        onclick="login()"
+      >
+        登入
+      </button>
+
+
+      <p
+        id="loginMessage"
+        class="message"
+      ></p>
+
+      <p>
+        <a href="/">
+          返回個人簡介
+        </a>
+      </p>
+
+    </div>
+
+
+
+    <!-- Editor -->
+
+    <div id="editor">
+
+      <h1>修改個人資料</h1>
+
+
+      <label>姓名</label>
+
+      <input
+        id="name"
+        type="text"
+      >
+
+
+      <label>系級</label>
+
+      <input
+        id="department"
+        type="text"
+      >
+
+
+      <label>個人介紹</label>
+
+      <textarea
+        id="introduction"
+      ></textarea>
+
+
+      <label>興趣</label>
+
+      <input
+        id="interests"
+        type="text"
+        placeholder="例如：程式設計, 音樂, 電影"
+      >
+
+
+      <button
+        class="primary"
+        onclick="saveProfile()"
+      >
+        儲存修改
+      </button>
+
+
+      <button
+        class="logout"
+        onclick="logout()"
+      >
+        登出
+      </button>
+
+
+      <p
+        id="saveMessage"
+        class="message"
+      ></p>
+
+
+      <p>
+        <a
+          href="/"
+          target="_blank"
+        >
+          開啟個人簡介
+        </a>
+      </p>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<script>
+
+
+let token =
+  sessionStorage.getItem("token");
+
+
+
+async function login() {
+
+  const username =
+    document.getElementById(
+      "username"
+    ).value;
+
+  const password =
+    document.getElementById(
+      "password"
+    ).value;
+
+
+  const message =
+    document.getElementById(
+      "loginMessage"
+    );
+
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/login",
+        {
+
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+
+          body: JSON.stringify({
+            username,
+            password
+          })
+
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (!response.ok) {
+
+      message.textContent =
+        data.message;
+
+      return;
+
+    }
+
+
+    token = data.token;
+
+    sessionStorage.setItem(
+      "token",
+      token
+    );
+
+
+    message.textContent =
+      "登入成功";
+
+
+    showEditor();
+
+    await loadProfile();
+
+
+  } catch (error) {
+
+    message.textContent =
+      "登入時發生錯誤";
+
+    console.error(error);
+
+  }
+
+}
+
+
+
+async function loadProfile() {
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/profile"
+      );
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        "讀取資料失敗"
+      );
+
+    }
+
+
+    const profile =
+      await response.json();
+
+
+    document.getElementById(
+      "name"
+    ).value =
+      profile.name || "";
+
+
+    document.getElementById(
+      "department"
+    ).value =
+      profile.department || "";
+
+
+    document.getElementById(
+      "introduction"
+    ).value =
+      profile.introduction || "";
+
+
+    document.getElementById(
+      "interests"
+    ).value =
+      (profile.interests || [])
+        .join(", ");
+
+
+  } catch (error) {
+
+    document.getElementById(
+      "saveMessage"
+    ).textContent =
+      "讀取資料失敗";
+
+  }
+
+}
+
+
+
+async function saveProfile() {
+
+  const message =
+    document.getElementById(
+      "saveMessage"
+    );
+
+
+  const interestsText =
+    document.getElementById(
+      "interests"
+    ).value;
+
+
+  const interests =
+    interestsText
+      .split(",")
+      .map(
+        item => item.trim()
+      )
+      .filter(
+        item => item !== ""
+      );
+
+
+  const profile = {
+
+    name:
+      document.getElementById(
+        "name"
+      ).value,
+
+    department:
+      document.getElementById(
+        "department"
+      ).value,
+
+    introduction:
+      document.getElementById(
+        "introduction"
+      ).value,
+
+    interests:
+      interests
+
+  };
+
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/profile",
+        {
+
+          method: "PUT",
+
+          headers: {
+
+            "Content-Type":
+              "application/json",
+
+            "Authorization":
+              "Bearer " + token
+
+          },
+
+          body:
+            JSON.stringify(
+              profile
+            )
+
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (!response.ok) {
+
+      message.textContent =
+        data.message;
+
+
+      if (
+        response.status === 401 ||
+        response.status === 403
+      ) {
+
+        logout();
+
+      }
+
+      return;
+
+    }
+
+
+    message.textContent =
+      "資料修改成功！";
+
+
+  } catch (error) {
+
+    message.textContent =
+      "修改資料時發生錯誤";
+
+    console.error(error);
+
+  }
+
+}
+
+
+
+function showEditor() {
+
+  document.getElementById(
+    "login"
+  ).style.display =
+    "none";
+
+
+  document.getElementById(
+    "editor"
+  ).style.display =
+    "block";
+
+}
+
+
+
+function logout() {
+
+  sessionStorage.removeItem(
+    "token"
+  );
+
+  token = null;
+
+  location.reload();
+
+}
+
+
+
+if (token) {
+
+  showEditor();
+
+  loadProfile();
+
+}
+
+
+</script>
+
+</body>
+
+</html>
