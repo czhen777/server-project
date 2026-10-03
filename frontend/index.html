@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>我的電子個人簡介</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    .container {
+      width: 90%;
+      max-width: 700px;
+      margin: 80px auto;
+    }
+
+    .card {
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    .item {
+      margin: 20px 0;
+    }
+
+    .label {
+      font-weight: bold;
+    }
+
+    #status {
+      color: #777;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+
+    <div class="card">
+
+      <h1>我的電子個人簡介</h1>
+
+      <p id="status">正在從資料庫讀取...</p>
+
+      <div id="profile" style="display: none;">
+
+        <div class="item">
+          <span class="label">姓名：</span>
+          <span id="name"></span>
+        </div>
+
+        <div class="item">
+          <span class="label">系級：</span>
+          <span id="department"></span>
+        </div>
+
+        <div class="item">
+          <span class="label">個人介紹：</span>
+          <p id="introduction"></p>
+        </div>
+
+        <div class="item">
+          <span class="label">興趣：</span>
+          <span id="interests"></span>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    async function loadProfile() {
+      try {
+        const response = await fetch("/api/profile");
+
+        if (!response.ok) {
+          throw new Error("API error");
+        }
+
+        const profile = await response.json();
+
+        document.getElementById("name").textContent =
+          profile.name;
+
+        document.getElementById("department").textContent =
+          profile.department;
+
+        document.getElementById("introduction").textContent =
+          profile.introduction;
+
+        document.getElementById("interests").textContent =
+          profile.interests.join("、");
+
+        document.getElementById("status").style.display =
+          "none";
+
+        document.getElementById("profile").style.display =
+          "block";
+
+      } catch (error) {
+
+        document.getElementById("status").textContent =
+          "無法讀取個人資料";
+
+        console.error(error);
+      }
+    }
+
+    loadProfile();
+  </script>
+
+</body>
+
+</html>
