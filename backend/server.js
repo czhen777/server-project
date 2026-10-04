@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
-const crypto = require("crypto");
+const bcrypt = require("bcrypt");
 
 const app = express();
 
@@ -42,19 +42,6 @@ const profileSchema = new mongoose.Schema(
 );
 
 const Profile = mongoose.model("Profile", profileSchema);
-
-
-// =============================
-// 密碼 Hash
-// =============================
-
-function hashPassword(password) {
-  return crypto
-    .createHash("sha256")
-    .update(password)
-    .digest("hex");
-}
-
 
 // =============================
 // JWT 驗證 Middleware
@@ -116,51 +103,62 @@ app.get("/api/hello", (req, res) => {
 // 登入
 // =============================
 
-app.post("/api/login", (req, res) => {
+app.post("/api/login", async (req, res) => {
 
-  const {
-    username,
-    password
-  } = req.body;
+  const { username, password } = req.body;
 
-  if (!username || !password) {
-
+  if (
+    typeof username !== "string" ||
+    typeof password !== "string" ||
+    !username ||
+    !password
+  ) {
     return res.status(400).json({
       message: "請輸入帳號與密碼"
     });
-
   }
 
-  const passwordHash = hashPassword(password);
+  try {
 
-  if (
-    username !== process.env.ADMIN_USERNAME ||
-    passwordHash !== process.env.ADMIN_PASSWORD_HASH
-  ) {
+    // 檢查帳號
+    const validUsername =
+      username === process.env.ADMIN_USERNAME;
 
-    return res.status(401).json({
-      message: "帳號或密碼錯誤"
+    // 使用 bcrypt 驗證密碼
+    const validPassword = await bcrypt.compare(
+      password,
+      process.env.ADMIN_PASSWORD_HASH
+    );
+
+    if (!validUsername || !validPassword) {
+      return res.status(401).json({
+        message: "帳號或密碼錯誤"
+      });
+    }
+
+    // 登入成功後產生 JWT
+    const token = jwt.sign(
+      { username },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    res.json({
+      message: "登入成功",
+      token: token
+    });
+
+  } catch (error) {
+
+    console.error(error);
+
+    res.status(500).json({
+      message: "登入發生錯誤"
     });
 
   }
 
-  const token = jwt.sign(
-    {
-      username: username
-    },
-    process.env.JWT_SECRET,
-    {
-      expiresIn: "1h"
-    }
-  );
-
-  res.json({
-    message: "登入成功",
-    token: token
-  });
-
 });
-
 
 // =============================
 // 取得 Profile
