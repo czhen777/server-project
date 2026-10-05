@@ -2,8 +2,10 @@ const express = require("express");
 const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
+const { rateLimit } = require("express-rate-limit");
 
 const app = express();
+app.set("trust proxy", 1);
 
 app.use(express.json());
 
@@ -101,7 +103,19 @@ app.get("/api/hello", (req, res) => {
 // 登入
 // =============================
 
-app.post("/api/login", async (req, res) => {
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+
+  message: {
+    message: "登入嘗試過多，請稍後再試"
+  }
+});
+
+app.post("/api/login", loginLimiter, async (req, res) => {
 
   const { username, password } = req.body;
 
